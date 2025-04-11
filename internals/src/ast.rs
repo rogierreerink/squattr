@@ -10,7 +10,7 @@ use syn::{
 
 use crate::parser::TryParseExt;
 
-#[derive(Debug)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 pub enum Value {
     Expr(Expr),
     Ident(Ident),
@@ -82,7 +82,7 @@ impl Parse for Value {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 pub struct Values(Punctuated<Value, Token![,]>);
 
 impl From<Value> for Values {
@@ -118,7 +118,7 @@ impl Parse for Values {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 pub struct Expr {
     pub ident: Ident,
     pub eq_token: Token![=],
@@ -145,7 +145,7 @@ impl Parse for Expr {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(feature = "debug", derive(Debug))]
 pub struct List {
     pub ident: Ident,
     pub paren_token: Paren,
