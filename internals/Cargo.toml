@@ -5,10 +5,8 @@ edition = "2024"
 
 [dependencies]
 proc-macro2 = "1.0.94"
-syn = { version = "2.0.100" }
-
-[dev-dependencies]
 quote = "1.0.40"
+syn = { version = "2.0.100" }
 
 [features]
 debug = ["syn/extra-traits"]
