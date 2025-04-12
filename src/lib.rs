@@ -1,22 +1,21 @@
 pub use derive;
 pub use internals::ast;
-pub use internals::attributes;
+pub use internals::attribute;
 pub use internals::errors;
 pub use internals::types;
+pub use syn;
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{List, Value, Values},
-        attributes::ParseAttributeExt,
         derive::Squattr,
-        errors::CombineErrorsExt,
         types::{ValueOptionExt, format_error},
     };
 
+    use internals::attribute::AttributeStreamExt;
     use proc_macro2::Span;
     use quote::quote;
-    use syn::{Error, Ident, Lit, LitInt, Result};
+    use syn::{Ident, Lit, LitInt};
 
     #[test]
     fn parse_attributes_derived() {

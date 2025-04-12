@@ -1,5 +1,5 @@
 pub mod ast;
-pub mod attributes;
+pub mod attribute;
 pub mod errors;
 pub mod expand;
 pub mod parser;

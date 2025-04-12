@@ -21,18 +21,19 @@ pub fn expand(input: TokenStream) -> Result<TokenStream> {
         #[automatically_derived]
         // Allows us to use `ast::List`s as input to an attribute parser.
         // Used for parsing nested attribute structs.
-        impl TryFrom<Value> for #ident {
-            type Error = Error;
+        impl TryFrom<::squattr::ast::Value> for #ident {
+            type Error = ::syn::Error;
 
-            fn try_from(value: Value) -> Result<Self> {
+            fn try_from(value: ::squattr::ast::Value) -> ::syn::Result<Self> {
                 let span = value.span();
 
                 let values = match value {
-                    Value::List(List { values, .. }) => values,
+                    ::squattr::ast::Value::List(::squattr::ast::List { values, .. }) => values,
                     value => return Err(format_error(&value, "a list of values")),
                 };
 
-                Self::try_from((values, span))
+                use ::squattr::attribute::Attribute;
+                Self::parse(values, span)
             }
         }
     })
@@ -76,7 +77,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 
         if is_option_type(&field.ty) {
             variables.extend(quote! {
-                let mut #ident: #ty = None;
+                let mut #ident: #ty = Option::None;
             });
 
             struct_fields.extend(quote! {
@@ -84,13 +85,13 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
             })
         } else {
             variables.extend(quote! {
-                let mut #ident: Option<#ty> = None;
+                let mut #ident: ::std::option::Option<#ty> = ::std::option::Option::None;
             });
 
             let error_msg = format!("expected key `{}` not found", ident);
             required_checks.extend(quote! {
                 if #ident.is_none() {
-                    errors.push(syn::Error::new(span, #error_msg));
+                    errors.push(::syn::Error::new(span, #error_msg));
                 };
             });
 
@@ -101,25 +102,23 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
     }
 
     Ok(quote! {
-        impl TryFrom<(Values, Span)> for #ident {
-            type Error = syn::Error;
-
-            fn try_from((values, span): (Values, Span)) -> syn::Result<Self> {
-                let mut errors = Vec::new();
+        impl ::squattr::attribute::Attribute for #ident {
+            fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
+                let mut errors = ::std::vec::Vec::new();
 
                 #variables
 
                 for value in values {
                     let id = match value.identifier() {
-                        Some(id) => id,
-                        None => continue,
+                        ::std::option::Option::Some(id) => id,
+                        ::std::option::Option::None => continue,
                     };
 
                     match id.as_str() {
                         #match_arms
 
                         id_str => {
-                            errors.push(syn::Error::new(
+                            errors.push(::syn::Error::new(
                                 value.span(),
                                 format!("unrecognized entry `{}`", id_str),
                             ));
@@ -129,7 +128,8 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 
                 #required_checks
 
-                if let Some(error) = errors.combine_errors() {
+                use ::squattr::errors::CombineErrorsExt;
+                if let ::std::option::Option::Some(error) = errors.combine_errors() {
                     return Err(error);
                 }
 
@@ -146,7 +146,9 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 /// From back to front, the given type needs to completely follow at least part
 /// of the `::std::option::Option` type path. This gives users some flexibility
 /// with regard to their type imports (comparted to just checking for `Option`).
-/// However, the `Option` type path cannot be renamed.
+/// However, the `Option` type path cannot be renamed and the user must make
+/// sure that they use the `::std::option::Option` type and not some other type
+/// with the same name.
 ///
 fn is_option_type(ty: &Type) -> bool {
     let option_path_segments = [
@@ -197,19 +199,17 @@ mod tests {
 
         let expect = quote! {
             #[automatically_derived]
-            impl TryFrom<(Values, Span)> for FooAttribute {
-                type Error = syn::Error;
+            impl ::squattr::attribute::Attribute for FooAttribute {
+                fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
+                    let mut errors = ::std::vec::Vec::new();
 
-                fn try_from((values, span): (Values, Span)) -> syn::Result<Self> {
-                    let mut errors = Vec::new();
-
-                    let mut bar: Option<String> = None;
-                    let mut baz: Option<bool> = None;
+                    let mut bar: ::std::option::Option<String> = ::std::option::Option::None;
+                    let mut baz: Option<bool> = Option::None;
 
                     for value in values {
                         let id = match value.identifier() {
-                            Some(id) => id,
-                            None => continue,
+                            ::std::option::Option::Some(id) => id,
+                            ::std::option::Option::None => continue,
                         };
                         match id.as_str() {
                             id_str if id_str == "bar" => {
@@ -221,7 +221,7 @@ mod tests {
                             id_str => {
                                 errors
                                     .push(
-                                        syn::Error::new(
+                                        ::syn::Error::new(
                                             value.span(),
                                             format!("unrecognized entry `{}`", id_str),
                                         ),
@@ -230,10 +230,11 @@ mod tests {
                         }
                     }
                     if bar.is_none() {
-                        errors.push(syn::Error::new(span, "expected key `bar` not found"));
+                        errors.push(::syn::Error::new(span, "expected key `bar` not found"));
                     }
 
-                    if let Some(error) = errors.combine_errors() {
+                    use ::squattr::errors::CombineErrorsExt;
+                    if let ::std::option::Option::Some(error) = errors.combine_errors() {
                         return Err(error);
                     }
 
@@ -245,18 +246,19 @@ mod tests {
             }
 
             #[automatically_derived]
-            impl TryFrom<Value> for FooAttribute {
-                type Error = Error;
+            impl TryFrom<::squattr::ast::Value> for FooAttribute {
+                type Error = ::syn::Error;
 
-                fn try_from(value: Value) -> Result<Self> {
+                fn try_from(value: ::squattr::ast::Value) -> ::syn::Result<Self> {
                     let span = value.span();
 
                     let values = match value {
-                        Value::List(List { values, .. }) => values,
+                        ::squattr::ast::Value::List(::squattr::ast::List { values, .. }) => values,
                         value => return Err(format_error(&value, "a list of values")),
                     };
 
-                    Self::try_from((values, span))
+                    use ::squattr::attribute::Attribute;
+                    Self::parse(values, span)
                 }
             }
         };
