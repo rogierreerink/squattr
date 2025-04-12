@@ -1,10 +1,10 @@
 use syn::Error;
 
-pub trait CombineErrorsExt: Sized {
+pub trait ErrorsExt: Sized {
     fn combine_errors(self) -> Option<Error>;
 }
 
-impl CombineErrorsExt for Vec<Error> {
+impl ErrorsExt for Vec<Error> {
     fn combine_errors(self) -> Option<Error> {
         let first = match self.get(0) {
             Some(first) => first.clone(),

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use squattr::{attribute::AttributeStreamExt, derive::Squattr};
+    use squattr::{attribute::AttributeExt, derive::Squattr};
 
     use proc_macro2::Span;
     use quote::quote;

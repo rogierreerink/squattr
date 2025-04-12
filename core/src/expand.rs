@@ -53,7 +53,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 
         if is_option_type(&field.ty) {
             variables.extend(quote! {
-                let mut #ident: #ty = Option::None;
+                let mut #ident: #ty = ::std::option::Option::None;
             });
 
             struct_fields.extend(quote! {
@@ -81,10 +81,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
         #[automatically_derived]
         impl ::squattr::attribute::Attribute for #ident {
             fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
-                use ::squattr::{
-                    errors::CombineErrorsExt,
-                    types::ValueStorageExt,
-                };
+                use ::squattr::{errors::ErrorsExt, types::ValueStorageExt};
 
                 #variables
 
@@ -181,13 +178,10 @@ mod tests {
             #[automatically_derived]
             impl ::squattr::attribute::Attribute for FooAttribute {
                 fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
-                    use ::squattr::{
-                        errors::CombineErrorsExt,
-                        types::ValueStorageExt
-                    };
+                    use ::squattr::{errors::ErrorsExt, types::ValueStorageExt};
 
                     let mut bar: ::std::option::Option<String> = ::std::option::Option::None;
-                    let mut baz: Option<bool> = Option::None;
+                    let mut baz: Option<bool> = ::std::option::Option::None;
                     let mut errors = ::std::vec::Vec::new();
 
                     for value in values {

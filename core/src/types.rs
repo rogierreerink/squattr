@@ -2,7 +2,7 @@ use syn::{Error, Ident, Lit, Result};
 
 use crate::{
     ast::{Expr, List, Value},
-    errors::CombineErrorsExt,
+    errors::ErrorsExt,
 };
 
 impl ParseValue for bool {
@@ -102,6 +102,7 @@ impl ParseValue for Lit {
     }
 }
 
+#[inline]
 pub fn format_error(value: &Value, expect: &str) -> Error {
     Error::new(
         value.span(),

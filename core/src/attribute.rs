@@ -24,11 +24,11 @@ where
     }
 }
 
-pub trait AttributeStreamExt: Sized {
+pub trait AttributeExt: Sized {
     fn parse_attribute<T: Attribute>(self) -> Result<T>;
 }
 
-impl AttributeStreamExt for TokenStream {
+impl AttributeExt for TokenStream {
     fn parse_attribute<T: Attribute>(self) -> Result<T> {
         syn::parse::Parser::parse2(
             |input: ParseStream| T::parse(input.parse()?, input.span()),
@@ -41,8 +41,8 @@ impl AttributeStreamExt for TokenStream {
 mod tests {
     use crate::{
         ast::Values,
-        attribute::{Attribute, AttributeStreamExt},
-        errors::CombineErrorsExt,
+        attribute::{Attribute, AttributeExt},
+        errors::ErrorsExt,
         types::ValueStorageExt,
     };
 
