@@ -17,7 +17,11 @@ mod tests {
             pub some_ident: Option<Ident>,
             pub some_lit: Option<Lit>,
             pub some_sub_attr: Option<SubAttribute>,
-            // pub some_int: u64,
+            pub some_usize: usize,
+            pub some_isize: isize,
+            pub some_f64: f64,
+            pub some_f64_as_u64: Option<u64>,
+            pub some_u64_as_f64: f64,
         }
 
         #[derive(Squattr, PartialEq, Debug)]
@@ -35,6 +39,11 @@ mod tests {
             some_sub_attr(
                 some_sub_bool = false
             ),
+            some_usize = 1234,
+            some_isize = -1234,
+            some_f64 = 12.34,
+            some_f64_as_u64 = 12.34,
+            some_u64_as_f64 = 1234,
         };
 
         assert_eq!(
@@ -52,7 +61,11 @@ mod tests {
                 some_sub_attr: Some(SubAttribute {
                     some_sub_bool: Some(false)
                 }),
-                // some_int: 0,
+                some_usize: 1234,
+                some_isize: -1234,
+                some_f64: 12.34,
+                some_f64_as_u64: Some(0),
+                some_u64_as_f64: 1234.,
             }
         );
     }

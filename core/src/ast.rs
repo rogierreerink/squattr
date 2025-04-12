@@ -233,7 +233,7 @@ mod tests {
                     Value::Lit(Lit::Bool(lit_bool)) => {
                         assert_eq!(lit_bool.value(), true);
                     }
-                    _ => panic!("input is not an ident"),
+                    _ => panic!("input is not a boolean"),
                 }
             }
             _ => panic!("input is not an expression"),

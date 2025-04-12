@@ -10,13 +10,55 @@ impl ParseValue for bool {
         match value {
             Value::Expr(Expr { value, .. }) => match value.as_ref() {
                 Value::Lit(Lit::Bool(lit_bool)) => Ok(lit_bool.value()),
-                value => Err(format_error(value, "a boolean value (`true`, `false`)")),
+                value => Err(format_error(value, "a boolean (`true`, `false`)")),
             },
             Value::Ident(_) => Ok(true),
             value => Err(format_error(&value, "a boolean expression")),
         }
     }
 }
+
+macro_rules! impl_integers {
+    ($( $t:ty ),*) => {
+        $(impl ParseValue for $t {
+            fn parse(value: Value) -> Result<Self> {
+                match value {
+                    Value::Expr(Expr { value, .. }) => match value.as_ref() {
+                        Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
+                        value => Err(format_error(value, "an integer")),
+                    },
+                    Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
+                    value => Err(format_error(&value, "an integer")),
+                }
+            }
+        })*
+    };
+}
+
+impl_integers!(
+    usize, u128, u64, u32, u16, u8, isize, i128, i64, i32, i16, i8
+);
+
+macro_rules! impl_floats {
+    ($( $t:ty ),*) => {
+        $(impl ParseValue for $t {
+            fn parse(value: Value) -> Result<Self> {
+                match value {
+                    Value::Expr(Expr { value, .. }) => match value.as_ref() {
+                        Value::Lit(Lit::Float(lit_float)) => Ok(lit_float.base10_parse()?),
+                        Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
+                        value => Err(format_error(value, "a decimal")),
+                    },
+                    Value::Lit(Lit::Float(lit_float)) => Ok(lit_float.base10_parse()?),
+                    Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
+                    value => Err(format_error(&value, "a decimal")),
+                }
+            }
+        })*
+    };
+}
+
+impl_floats!(f64, f32);
 
 impl ParseValue for String {
     fn parse(value: Value) -> Result<Self> {
