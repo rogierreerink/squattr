@@ -44,7 +44,6 @@ dependencies = [
  "internals",
  "proc-macro2",
  "quote",
- "squattr",
  "syn",
 ]
 

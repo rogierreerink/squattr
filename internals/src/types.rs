@@ -5,10 +5,8 @@ use crate::{
     errors::CombineErrorsExt,
 };
 
-impl TryFrom<Value> for bool {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self> {
+impl ParseValue for bool {
+    fn parse(value: Value) -> Result<Self> {
         match value {
             Value::Expr(Expr { value, .. }) => match value.as_ref() {
                 Value::Lit(Lit::Bool(lit_bool)) => Ok(lit_bool.value()),
@@ -20,10 +18,8 @@ impl TryFrom<Value> for bool {
     }
 }
 
-impl TryFrom<Value> for String {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self> {
+impl ParseValue for String {
+    fn parse(value: Value) -> Result<Self> {
         match value {
             Value::Expr(Expr { value, .. }) => match value.as_ref() {
                 Value::Lit(Lit::Str(lit_str)) => Ok(lit_str.value()),
@@ -35,10 +31,8 @@ impl TryFrom<Value> for String {
     }
 }
 
-impl TryFrom<Value> for Vec<String> {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self> {
+impl ParseValue for Vec<String> {
+    fn parse(value: Value) -> Result<Self> {
         match value {
             Value::List(List { values, .. }) => {
                 let mut errors = vec![];
@@ -62,10 +56,8 @@ impl TryFrom<Value> for Vec<String> {
     }
 }
 
-impl TryFrom<Value> for Ident {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self> {
+impl ParseValue for Ident {
+    fn parse(value: Value) -> Result<Self> {
         match value {
             Value::Ident(ident) => Ok(ident),
             value => Err(format_error(&value, "an identifier")),
@@ -73,10 +65,8 @@ impl TryFrom<Value> for Ident {
     }
 }
 
-impl TryFrom<Value> for Vec<Ident> {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self> {
+impl ParseValue for Vec<Ident> {
+    fn parse(value: Value) -> Result<Self> {
         match value {
             Value::List(List { values, .. }) => {
                 let mut errors = vec![];
@@ -100,10 +90,8 @@ impl TryFrom<Value> for Vec<Ident> {
     }
 }
 
-impl TryFrom<Value> for Lit {
-    type Error = Error;
-
-    fn try_from(value: Value) -> Result<Self> {
+impl ParseValue for Lit {
+    fn parse(value: Value) -> Result<Self> {
         match value {
             Value::Expr(Expr { value, .. }) => match value.as_ref() {
                 Value::Lit(lit) => Ok(lit.clone()),
@@ -124,13 +112,28 @@ pub fn format_error(value: &Value, expect: &str) -> Error {
     )
 }
 
-pub trait ValueOptionExt: Sized {
-    fn insert_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>);
+pub trait ParseValue: Sized {
+    fn parse(value: Value) -> Result<Self>;
 }
 
-impl<T> ValueOptionExt for Option<T>
+pub trait ParseValueExt: Sized {
+    fn parse<T: ParseValue>(self) -> Result<T>;
+}
+
+impl ParseValueExt for Value {
+    fn parse<T: ParseValue>(self) -> Result<T> {
+        T::parse(self)
+    }
+}
+
+pub trait ValueStorageExt: Sized {
+    fn insert_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>);
+    fn append_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>);
+}
+
+impl<T> ValueStorageExt for Option<T>
 where
-    T: TryFrom<Value, Error = Error>,
+    T: ParseValue,
 {
     fn insert_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>) {
         if self.is_some() {
@@ -139,7 +142,7 @@ where
                 format!("duplicate entry for `{}`", id),
             ));
         } else {
-            match value.try_into() {
+            match value.parse() {
                 Ok(value) => {
                     self.replace(value);
                 }
@@ -148,5 +151,12 @@ where
                 }
             }
         }
+    }
+
+    fn append_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>) {
+        errors.push(Error::new(
+            value.span(),
+            format!("cannot append multiple entries for `{}`", id),
+        ));
     }
 }

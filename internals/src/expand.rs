@@ -8,35 +8,11 @@ use syn::{
 pub fn expand(input: TokenStream) -> Result<TokenStream> {
     let input = parse2::<DeriveInput>(input)?;
     let ident = input.ident;
-    let expanded = match input.data {
-        Data::Struct(DataStruct { fields, .. }) => expand_struct(ident.clone(), fields)?,
-        Data::Enum(_) => return Err(Error::new(Span::call_site(), "enums are not supported")),
-        Data::Union(_) => return Err(Error::new(Span::call_site(), "unions are not supported")),
-    };
-
-    Ok(quote! {
-        #[automatically_derived]
-        #expanded
-
-        #[automatically_derived]
-        // Allows us to use `ast::List`s as input to an attribute parser.
-        // Used for parsing nested attribute structs.
-        impl TryFrom<::squattr::ast::Value> for #ident {
-            type Error = ::syn::Error;
-
-            fn try_from(value: ::squattr::ast::Value) -> ::syn::Result<Self> {
-                let span = value.span();
-
-                let values = match value {
-                    ::squattr::ast::Value::List(::squattr::ast::List { values, .. }) => values,
-                    value => return Err(format_error(&value, "a list of values")),
-                };
-
-                use ::squattr::attribute::Attribute;
-                Self::parse(values, span)
-            }
-        }
-    })
+    match input.data {
+        Data::Struct(DataStruct { fields, .. }) => expand_struct(ident.clone(), fields),
+        Data::Enum(_) => Err(Error::new(Span::call_site(), "enums are not supported")),
+        Data::Union(_) => Err(Error::new(Span::call_site(), "unions are not supported")),
+    }
 }
 
 fn expand_struct(ident: Ident, fields: Fields) -> Result<TokenStream> {
@@ -102,11 +78,17 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
     }
 
     Ok(quote! {
+        #[automatically_derived]
         impl ::squattr::attribute::Attribute for #ident {
             fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
-                let mut errors = ::std::vec::Vec::new();
+                use ::squattr::{
+                    errors::CombineErrorsExt,
+                    types::ValueStorageExt,
+                };
 
                 #variables
+
+                let mut errors = ::std::vec::Vec::new();
 
                 for value in values {
                     let id = match value.identifier() {
@@ -128,7 +110,6 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 
                 #required_checks
 
-                use ::squattr::errors::CombineErrorsExt;
                 if let ::std::option::Option::Some(error) = errors.combine_errors() {
                     return Err(error);
                 }
@@ -182,9 +163,8 @@ fn is_option_type(ty: &Type) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use proc_macro2::TokenStream;
     use quote::quote;
-
-    use crate::tests::assert_eq_token_streams;
 
     use super::expand;
 
@@ -201,10 +181,14 @@ mod tests {
             #[automatically_derived]
             impl ::squattr::attribute::Attribute for FooAttribute {
                 fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
-                    let mut errors = ::std::vec::Vec::new();
+                    use ::squattr::{
+                        errors::CombineErrorsExt,
+                        types::ValueStorageExt
+                    };
 
                     let mut bar: ::std::option::Option<String> = ::std::option::Option::None;
                     let mut baz: Option<bool> = Option::None;
+                    let mut errors = ::std::vec::Vec::new();
 
                     for value in values {
                         let id = match value.identifier() {
@@ -229,11 +213,11 @@ mod tests {
                             }
                         }
                     }
+
                     if bar.is_none() {
                         errors.push(::syn::Error::new(span, "expected key `bar` not found"));
                     }
 
-                    use ::squattr::errors::CombineErrorsExt;
                     if let ::std::option::Option::Some(error) = errors.combine_errors() {
                         return Err(error);
                     }
@@ -244,25 +228,22 @@ mod tests {
                     })
                 }
             }
-
-            #[automatically_derived]
-            impl TryFrom<::squattr::ast::Value> for FooAttribute {
-                type Error = ::syn::Error;
-
-                fn try_from(value: ::squattr::ast::Value) -> ::syn::Result<Self> {
-                    let span = value.span();
-
-                    let values = match value {
-                        ::squattr::ast::Value::List(::squattr::ast::List { values, .. }) => values,
-                        value => return Err(format_error(&value, "a list of values")),
-                    };
-
-                    use ::squattr::attribute::Attribute;
-                    Self::parse(values, span)
-                }
-            }
         };
 
         assert_eq_token_streams(&expand(input).unwrap(), &expect);
+    }
+
+    /// Pretty compare token streams for equality.
+    ///
+    pub fn assert_eq_token_streams(a: &TokenStream, b: &TokenStream) {
+        let a_str = a.to_string();
+        let a_parsed = syn::parse_file(&a_str).unwrap();
+        let a_pretty = prettyplease::unparse(&a_parsed);
+
+        let b_str = b.to_string();
+        let b_parsed = syn::parse_file(&b_str).unwrap();
+        let b_pretty = prettyplease::unparse(&b_parsed);
+
+        pretty_assertions::assert_eq!(a_pretty, b_pretty);
     }
 }

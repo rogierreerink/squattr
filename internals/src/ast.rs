@@ -3,12 +3,10 @@ use std::ops::Index;
 use proc_macro2::Span;
 use syn::{
     Ident, Lit, Result, Token, parenthesized,
-    parse::{Parse, ParseStream},
+    parse::{Parse, ParseStream, discouraged::Speculative},
     punctuated::{self, Punctuated},
     token::Paren,
 };
-
-use crate::parser::TryParseExt;
 
 #[cfg_attr(feature = "debug", derive(Debug))]
 pub enum Value {
@@ -188,6 +186,29 @@ impl IntoIterator for List {
 
     fn into_iter(self) -> Self::IntoIter {
         self.values.into_iter()
+    }
+}
+
+pub trait TryParse: Sized {
+    /// Try to parse a value without advancing the stream if parsing fails.
+    ///
+    fn try_parse(input: ParseStream) -> Result<Self>;
+}
+
+pub trait TryParseExt {
+    fn try_parse<T: Parse>(&self) -> Result<T>;
+}
+
+impl TryParseExt for ParseStream<'_> {
+    fn try_parse<T: Parse>(&self) -> Result<T> {
+        let fork = self.fork();
+        match fork.parse() {
+            Ok(result) => {
+                self.advance_to(&fork);
+                Ok(result)
+            }
+            Err(error) => Err(error),
+        }
     }
 }
 

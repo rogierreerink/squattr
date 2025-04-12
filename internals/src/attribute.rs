@@ -1,10 +1,27 @@
 use proc_macro2::{Span, TokenStream};
 use syn::{Result, parse::ParseStream};
 
-use crate::ast::Values;
+use crate::{
+    ast::{List, Value, Values},
+    types::{ParseValue, format_error},
+};
 
 pub trait Attribute: Sized {
     fn parse(values: Values, span: Span) -> Result<Self>;
+}
+
+impl<T> ParseValue for T
+where
+    T: Attribute,
+{
+    fn parse(value: Value) -> Result<Self> {
+        let span = value.span();
+        let values = match value {
+            Value::List(List { values, .. }) => values,
+            value => return Err(format_error(&value, "a list of values")),
+        };
+        T::parse(values, span)
+    }
 }
 
 pub trait AttributeStreamExt: Sized {
@@ -23,10 +40,10 @@ impl AttributeStreamExt for TokenStream {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{List, Value, Values},
+        ast::Values,
         attribute::{Attribute, AttributeStreamExt},
         errors::CombineErrorsExt,
-        types::{ValueOptionExt, format_error},
+        types::ValueStorageExt,
     };
 
     use proc_macro2::Span;
@@ -123,21 +140,6 @@ mod tests {
             }
         }
 
-        impl TryFrom<Value> for SomeAttribute {
-            type Error = Error;
-
-            fn try_from(value: Value) -> Result<Self> {
-                let span = value.span();
-
-                let values = match value {
-                    Value::List(List { values, .. }) => values,
-                    value => return Err(format_error(&value, "a list of values")),
-                };
-
-                Self::parse(values, span)
-            }
-        }
-
         #[derive(PartialEq, Debug)]
         pub struct SubAttribute {
             pub some_sub_bool: bool,
@@ -178,21 +180,6 @@ mod tests {
                 Ok(Self {
                     some_sub_bool: some_sub_bool.unwrap_or_default(),
                 })
-            }
-        }
-
-        impl TryFrom<Value> for SubAttribute {
-            type Error = Error;
-
-            fn try_from(value: Value) -> Result<Self> {
-                let span = value.span();
-
-                let values = match value {
-                    Value::List(List { values, .. }) => values,
-                    value => return Err(format_error(&value, "a list of values")),
-                };
-
-                Self::parse(values, span)
             }
         }
 
