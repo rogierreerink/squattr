@@ -1,17 +1,41 @@
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::{
     Data, DataStruct, DeriveInput, Error, Field, Fields, FieldsNamed, Ident, PathArguments,
-    PathSegment, Result, Type, TypePath, parse2, punctuated,
+    PathSegment, Result, Type, TypePath, parse2, punctuated, spanned::Spanned,
 };
 
 pub fn expand(input: TokenStream) -> Result<TokenStream> {
     let input = parse2::<DeriveInput>(input)?;
-    match input.data {
-        Data::Struct(DataStruct { fields, .. }) => expand_struct(input.ident, fields),
+    let ident = input.ident;
+    let expanded = match input.data {
+        Data::Struct(DataStruct { fields, .. }) => expand_struct(ident.clone(), fields)?,
         Data::Enum(_) => return Err(Error::new(Span::call_site(), "enums are not supported")),
         Data::Union(_) => return Err(Error::new(Span::call_site(), "unions are not supported")),
-    }
+    };
+
+    Ok(quote! {
+        #[automatically_derived]
+        #expanded
+
+        #[automatically_derived]
+        // Allows us to use `ast::List`s as input to an attribute parser.
+        // Used for parsing nested attribute structs.
+        impl TryFrom<Value> for #ident {
+            type Error = Error;
+
+            fn try_from(value: Value) -> Result<Self> {
+                let span = value.span();
+
+                let values = match value {
+                    Value::List(List { values, .. }) => values,
+                    value => return Err(format_error(&value, "a list of values")),
+                };
+
+                Self::try_from((values, span))
+            }
+        }
+    })
 }
 
 fn expand_struct(ident: Ident, fields: Fields) -> Result<TokenStream> {
@@ -43,9 +67,10 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
         let ident_str = ident.to_string();
         let ty = &field.ty;
 
-        match_arms.extend(quote! {
+        match_arms.extend(quote_spanned! {
+            ty.span()=>
             id_str if id_str == #ident_str => {
-                #ident.from_value(id_str, value, &mut errors);
+                #ident.insert_value(id_str, value, &mut errors);
             }
         });
 
@@ -55,7 +80,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
             });
 
             struct_fields.extend(quote! {
-                #ident: #ident.unwrap_or_default(),
+                #ident,
             })
         } else {
             variables.extend(quote! {
@@ -70,7 +95,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
             });
 
             struct_fields.extend(quote! {
-                #ident,
+                #ident: #ident.unwrap_or_default(),
             });
         }
     }
@@ -119,7 +144,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 /// Determine wether a type is wrapped in an Option.
 ///
 /// From back to front, the given type needs to completely follow at least part
-/// of the `std::option::Option` type path. This gives users some flexibility
+/// of the `::std::option::Option` type path. This gives users some flexibility
 /// with regard to their type imports (comparted to just checking for `Option`).
 /// However, the `Option` type path cannot be renamed.
 ///
@@ -164,19 +189,23 @@ mod tests {
     #[test]
     fn expand_named_struct() {
         let input = quote! {
-            struct FooAttributes {
+            struct FooAttribute {
                 bar: String,
                 baz: Option<bool>,
             }
         };
 
         let expect = quote! {
-            impl TryFrom<(Values, Span)> for FooAttributes {
+            #[automatically_derived]
+            impl TryFrom<(Values, Span)> for FooAttribute {
                 type Error = syn::Error;
+
                 fn try_from((values, span): (Values, Span)) -> syn::Result<Self> {
                     let mut errors = Vec::new();
+
                     let mut bar: Option<String> = None;
                     let mut baz: Option<bool> = None;
+
                     for value in values {
                         let id = match value.identifier() {
                             Some(id) => id,
@@ -184,10 +213,10 @@ mod tests {
                         };
                         match id.as_str() {
                             id_str if id_str == "bar" => {
-                                bar.from_value(id_str, value, &mut errors);
+                                bar.insert_value(id_str, value, &mut errors);
                             }
                             id_str if id_str == "baz" => {
-                                baz.from_value(id_str, value, &mut errors);
+                                baz.insert_value(id_str, value, &mut errors);
                             }
                             id_str => {
                                 errors
@@ -203,13 +232,31 @@ mod tests {
                     if bar.is_none() {
                         errors.push(syn::Error::new(span, "expected key `bar` not found"));
                     }
+
                     if let Some(error) = errors.combine_errors() {
                         return Err(error);
                     }
+
                     Ok(Self {
-                        bar,
-                        baz: baz.unwrap_or_default(),
+                        bar: bar.unwrap_or_default(),
+                        baz,
                     })
+                }
+            }
+
+            #[automatically_derived]
+            impl TryFrom<Value> for FooAttribute {
+                type Error = Error;
+
+                fn try_from(value: Value) -> Result<Self> {
+                    let span = value.span();
+
+                    let values = match value {
+                        Value::List(List { values, .. }) => values,
+                        value => return Err(format_error(&value, "a list of values")),
+                    };
+
+                    Self::try_from((values, span))
                 }
             }
         };

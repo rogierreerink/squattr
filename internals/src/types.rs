@@ -124,15 +124,15 @@ pub fn format_error(value: &Value, expect: &str) -> Error {
     )
 }
 
-pub trait FromValueExt: Sized {
-    fn from_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>);
+pub trait ValueOptionExt: Sized {
+    fn insert_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>);
 }
 
-impl<T> FromValueExt for Option<T>
+impl<T> ValueOptionExt for Option<T>
 where
     T: TryFrom<Value, Error = Error>,
 {
-    fn from_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>) {
+    fn insert_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>) {
         if self.is_some() {
             errors.push(Error::new(
                 value.span(),

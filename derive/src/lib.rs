@@ -1,14 +1,10 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use internals::expand::expand;
+use proc_macro::TokenStream;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+#[proc_macro_derive(Squattr)]
+pub fn derive_attribute_parser(input: TokenStream) -> TokenStream {
+    match expand(input.into()) {
+        Ok(token_stream) => token_stream.into(),
+        Err(error) => error.into_compile_error().into(),
     }
 }

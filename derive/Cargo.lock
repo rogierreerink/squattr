@@ -37,17 +37,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "squattr"
-version = "0.1.0"
-dependencies = [
- "derive",
- "internals",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "syn"
 version = "2.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
