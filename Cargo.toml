@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-internals = { path = "internals" }
-derive = { path = "derive" }
+squattr-core = { path = "core" }
+squattr-derive = { path = "derive" }
 syn = "2.0.100"
 
 [dev-dependencies]

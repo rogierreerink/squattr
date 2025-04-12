@@ -3,22 +3,6 @@
 version = 4
 
 [[package]]
-name = "derive"
-version = "0.1.0"
-dependencies = [
- "internals",
-]
-
-[[package]]
-name = "internals"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -40,11 +24,27 @@ dependencies = [
 name = "squattr"
 version = "0.1.0"
 dependencies = [
- "derive",
- "internals",
+ "proc-macro2",
+ "quote",
+ "squattr-core",
+ "squattr-derive",
+ "syn",
+]
+
+[[package]]
+name = "squattr-core"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "squattr-derive"
+version = "0.1.0"
+dependencies = [
+ "squattr-core",
 ]
 
 [[package]]

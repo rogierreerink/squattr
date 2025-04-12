@@ -1,5 +1,5 @@
-use internals::expand::expand;
 use proc_macro::TokenStream;
+use squattr_core::expand::expand;
 
 #[proc_macro_derive(Squattr)]
 pub fn derive_attribute_parser(input: TokenStream) -> TokenStream {
