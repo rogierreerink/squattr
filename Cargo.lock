@@ -91,6 +91,7 @@ dependencies = [
 name = "squattr"
 version = "0.1.0"
 dependencies = [
+ "pretty_assertions",
  "proc-macro2",
  "quote",
  "squattr-core",

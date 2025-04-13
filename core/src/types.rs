@@ -1,22 +1,9 @@
-use syn::{Error, Ident, Lit, Result};
+use syn::{Error, Ident, Lit, LitBool, LitFloat, LitInt, LitStr, Result};
 
 use crate::{
     ast::{Expr, List, Value},
     errors::ErrorsExt,
 };
-
-impl ParseValue for bool {
-    fn parse(value: Value) -> Result<Self> {
-        match value {
-            Value::Expr(Expr { value, .. }) => match value.as_ref() {
-                Value::Lit(Lit::Bool(lit_bool)) => Ok(lit_bool.value()),
-                value => Err(format_error(value, "a boolean (`true`, `false`)")),
-            },
-            Value::Ident(_) => Ok(true),
-            value => Err(format_error(&value, "a boolean expression")),
-        }
-    }
-}
 
 macro_rules! impl_integers {
     ($( $t:ty ),*) => {
@@ -25,10 +12,36 @@ macro_rules! impl_integers {
                 match value {
                     Value::Expr(Expr { value, .. }) => match value.as_ref() {
                         Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
-                        value => Err(format_error(value, "an integer")),
+                        value => Err(format_error(value, "integer")),
                     },
                     Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
-                    value => Err(format_error(&value, "an integer")),
+                    value => Err(format_error(&value, "integer")),
+                }
+            }
+        }
+
+        impl ParseValue for Vec<$t> {
+            fn parse(value: Value) -> Result<Self> {
+                match value {
+                    Value::List(List { values, .. }) => {
+                        let mut errors = vec![];
+                        let mut lits = vec![];
+
+                        for value in values {
+                            match value {
+                                Value::Lit(Lit::Float(lit_float)) => lits.push(lit_float.base10_parse()?),
+                                Value::Lit(Lit::Int(lit_int)) => lits.push(lit_int.base10_parse()?),
+                                value => errors.push(format_error(&value, "decimal")),
+                            }
+                        }
+
+                        if let Some(error) = errors.combine_errors() {
+                            return Err(error);
+                        }
+
+                        Ok(lits)
+                    }
+                    value => Err(format_error(&value, "list of decimals")),
                 }
             }
         })*
@@ -47,11 +60,37 @@ macro_rules! impl_floats {
                     Value::Expr(Expr { value, .. }) => match value.as_ref() {
                         Value::Lit(Lit::Float(lit_float)) => Ok(lit_float.base10_parse()?),
                         Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
-                        value => Err(format_error(value, "a decimal")),
+                        value => Err(format_error(value, "decimal")),
                     },
                     Value::Lit(Lit::Float(lit_float)) => Ok(lit_float.base10_parse()?),
                     Value::Lit(Lit::Int(lit_int)) => Ok(lit_int.base10_parse()?),
-                    value => Err(format_error(&value, "a decimal")),
+                    value => Err(format_error(&value, "decimal")),
+                }
+            }
+        }
+
+        impl ParseValue for Vec<$t> {
+            fn parse(value: Value) -> Result<Self> {
+                match value {
+                    Value::List(List { values, .. }) => {
+                        let mut errors = vec![];
+                        let mut lits = vec![];
+
+                        for value in values {
+                            match value {
+                                Value::Lit(Lit::Float(lit_float)) => lits.push(lit_float.base10_parse()?),
+                                Value::Lit(Lit::Int(lit_int)) => lits.push(lit_int.base10_parse()?),
+                                value => errors.push(format_error(&value, "decimal")),
+                            }
+                        }
+
+                        if let Some(error) = errors.combine_errors() {
+                            return Err(error);
+                        }
+
+                        Ok(lits)
+                    }
+                    value => Err(format_error(&value, "list of decimals")),
                 }
             }
         })*
@@ -60,15 +99,27 @@ macro_rules! impl_floats {
 
 impl_floats!(f64, f32);
 
+impl ParseValue for bool {
+    fn parse(value: Value) -> Result<Self> {
+        match value {
+            Value::Expr(Expr { value, .. }) => match value.as_ref() {
+                Value::Lit(Lit::Bool(lit_bool)) => Ok(lit_bool.value()),
+                value => Err(format_error(value, "boolean (`true`, `false`)")),
+            },
+            Value::Ident(_) => Ok(true),
+            value => Err(format_error(&value, "boolean expression")),
+        }
+    }
+}
+
 impl ParseValue for String {
     fn parse(value: Value) -> Result<Self> {
         match value {
             Value::Expr(Expr { value, .. }) => match value.as_ref() {
                 Value::Lit(Lit::Str(lit_str)) => Ok(lit_str.value()),
-                value => Err(format_error(value, "a string literal")),
+                value => Err(format_error(value, "string literal")),
             },
-            Value::Lit(Lit::Str(lit_str)) => Ok(lit_str.value()),
-            value => Err(format_error(&value, "a string literal")),
+            value => Err(format_error(&value, "string literal")),
         }
     }
 }
@@ -83,7 +134,7 @@ impl ParseValue for Vec<String> {
                 for value in values {
                     match value {
                         Value::Lit(Lit::Str(lit_str)) => strings.push(lit_str.value()),
-                        value => errors.push(format_error(&value, "a string literal")),
+                        value => errors.push(format_error(&value, "string literal")),
                     }
                 }
 
@@ -93,7 +144,7 @@ impl ParseValue for Vec<String> {
 
                 Ok(strings)
             }
-            value => Err(format_error(&value, "a list of string literals")),
+            value => Err(format_error(&value, "list of string literals")),
         }
     }
 }
@@ -102,7 +153,7 @@ impl ParseValue for Ident {
     fn parse(value: Value) -> Result<Self> {
         match value {
             Value::Ident(ident) => Ok(ident),
-            value => Err(format_error(&value, "an identifier")),
+            value => Err(format_error(&value, "identifier")),
         }
     }
 }
@@ -117,7 +168,7 @@ impl ParseValue for Vec<Ident> {
                 for value in values {
                     match value {
                         Value::Ident(ident) => idents.push(ident),
-                        value => errors.push(format_error(&value, "an identifier")),
+                        value => errors.push(format_error(&value, "identifier")),
                     }
                 }
 
@@ -127,7 +178,7 @@ impl ParseValue for Vec<Ident> {
 
                 Ok(idents)
             }
-            value => Err(format_error(&value, "a list of identifiers")),
+            value => Err(format_error(&value, "list of identifiers")),
         }
     }
 }
@@ -137,20 +188,95 @@ impl ParseValue for Lit {
         match value {
             Value::Expr(Expr { value, .. }) => match value.as_ref() {
                 Value::Lit(lit) => Ok(lit.clone()),
-                value => Err(format_error(value, "a literal")),
+                value => Err(format_error(value, "literal")),
             },
-            value => Err(format_error(&value, "a literal expression")),
+            value => Err(format_error(&value, "literal expression")),
         }
     }
 }
 
+impl ParseValue for Vec<Lit> {
+    fn parse(value: Value) -> Result<Self> {
+        match value {
+            Value::List(List { values, .. }) => {
+                let mut errors = vec![];
+                let mut lits = vec![];
+
+                for value in values {
+                    match value {
+                        Value::Lit(lit) => lits.push(lit),
+                        value => errors.push(format_error(&value, "literal")),
+                    }
+                }
+
+                if let Some(error) = errors.combine_errors() {
+                    return Err(error);
+                }
+
+                Ok(lits)
+            }
+            value => Err(format_error(&value, "list of literals")),
+        }
+    }
+}
+
+macro_rules! impl_lit_variants {
+    ($( ($t:ty, $e:path, $x:literal, $xp:literal) ),*) => {
+        $(impl ParseValue for $t {
+            fn parse(value: Value) -> Result<Self> {
+                match value {
+                    Value::Expr(Expr { value, .. }) => match value.as_ref() {
+                        Value::Lit($e(lit)) => Ok(lit.clone()),
+                        value => Err(format_error(value, $x)),
+                    },
+                    value => Err(format_error(&value, concat!($x, " expression"))),
+                }
+            }
+        }
+
+        impl ParseValue for Vec<$t> {
+            fn parse(value: Value) -> Result<Self> {
+                match value {
+                    Value::List(List { values, .. }) => {
+                        let mut errors = vec![];
+                        let mut lits = vec![];
+
+                        for value in values {
+                            match value {
+                                Value::Lit($e(lit)) => lits.push(lit),
+                                value => errors.push(format_error(&value, $x)),
+                            }
+                        }
+
+                        if let Some(error) = errors.combine_errors() {
+                            return Err(error);
+                        }
+
+                        Ok(lits)
+                    }
+                    value => Err(format_error(&value, concat!("list of ", $xp))),
+                }
+            }
+        })*
+    }
+}
+
+impl_lit_variants!(
+    (LitBool, Lit::Bool, "boolean", "booleans"),
+    (LitFloat, Lit::Float, "decimal", "decimals"),
+    (LitInt, Lit::Int, "integer", "integers"),
+    (LitStr, Lit::Str, "string literal", "string literals")
+);
+
+/// Create a type conversion error.
+///
 #[inline]
 pub fn format_error(value: &Value, expect: &str) -> Error {
     Error::new(
         value.span(),
         match value.identifier() {
-            Some(id) => format!("`{}` expects {}", id, expect),
-            None => format!("expected {}", expect),
+            Some(id) => format!("expected {} (`{}`)", expect, id),
+            None => format!("{} expected", expect),
         },
     )
 }

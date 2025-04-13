@@ -18,7 +18,7 @@ where
         let span = value.span();
         let values = match value {
             Value::List(List { values, .. }) => values,
-            value => return Err(format_error(&value, "a list of values")),
+            value => return Err(format_error(&value, "list of values")),
         };
         T::parse(values, span)
     }
