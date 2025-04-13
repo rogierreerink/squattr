@@ -54,11 +54,13 @@ mod tests {
             tst_lit_float: Option<LitFloat>,
             tst_lit_int: Option<LitInt>,
             tst_lit_str: Option<LitStr>,
+
+            tst_sub_attrs: SubAttribute,
         }
 
-        #[derive(Squattr, PartialEq, Debug)]
+        #[derive(Squattr, Default, PartialEq, Debug)]
         pub struct SubAttribute {
-            some_sub_bool: Option<bool>,
+            tst_sub_str: Option<String>,
         }
 
         let usize_max = usize::MAX;
@@ -135,6 +137,10 @@ mod tests {
             tst_lit_float = 123.456,
             tst_lit_int = 123,
             tst_lit_str = "literal",
+
+            tst_sub_attrs(
+                tst_sub_str = "hola, mundo"
+            ),
         };
 
         pretty_assertions::assert_eq!(
@@ -183,6 +189,10 @@ mod tests {
                 tst_lit_float: Some(LitFloat::new("123.456", Span::call_site())),
                 tst_lit_int: Some(LitInt::new("123", Span::call_site())),
                 tst_lit_str: Some(LitStr::new("literal", Span::call_site())),
+
+                tst_sub_attrs: SubAttribute {
+                    tst_sub_str: Some("hola, mundo".into())
+                }
             }
         );
     }
