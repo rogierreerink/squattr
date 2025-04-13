@@ -95,7 +95,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                         ::std::option::Option::None => {
                             errors.push(::syn::Error::new(
                                 value.span(),
-                                format!("expected an identifier"),
+                                ::std::format!("expected an identifier"),
                             ));
                             continue;
                         },
@@ -107,7 +107,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                         id_str => {
                             errors.push(::syn::Error::new(
                                 value.span(),
-                                format!("unrecognized entry `{}`", id_str),
+                                ::std::format!("unrecognized entry `{}`", id_str),
                             ));
                         }
                     }
@@ -234,7 +234,7 @@ mod tests {
                             ::std::option::Option::None => {
                                 errors.push(::syn::Error::new(
                                     value.span(),
-                                    format!("expected an identifier"),
+                                    ::std::format!("expected an identifier"),
                                 ));
                                 continue;
                             },
@@ -252,7 +252,7 @@ mod tests {
                             id_str => {
                                 errors.push(::syn::Error::new(
                                     value.span(),
-                                    format!("unrecognized entry `{}`", id_str),
+                                    ::std::format!("unrecognized entry `{}`", id_str),
                                 ));
                             }
                         }
