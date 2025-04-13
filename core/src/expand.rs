@@ -51,7 +51,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
             }
         });
 
-        if is_option_type(&field.ty) {
+        if is_optional(ty) {
             variables.extend(quote! {
                 let mut #ident: #ty = ::std::option::Option::None;
             });
@@ -64,12 +64,14 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                 let mut #ident: ::std::option::Option<#ty> = ::std::option::Option::None;
             });
 
-            let error_msg = format!("expected key `{}` not found", ident);
-            required_checks.extend(quote! {
-                if #ident.is_none() {
-                    errors.push(::syn::Error::new(span, #error_msg));
-                };
-            });
+            if !is_boolean(ty) {
+                let error_msg = format!("expected key `{}` not found", ident);
+                required_checks.extend(quote! {
+                    if #ident.is_none() {
+                        errors.push(::syn::Error::new(span, #error_msg));
+                    };
+                });
+            }
 
             struct_fields.extend(quote! {
                 #ident: #ident.unwrap_or_default(),
@@ -119,43 +121,77 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
     })
 }
 
-/// Determine wether a type is wrapped in an Option.
+/// Determine wether a type is a `::std::option::Option` (i.e. may be omitted).
 ///
-/// From back to front, the given type needs to completely follow at least part
-/// of the `::std::option::Option` type path. This gives users some flexibility
-/// with regard to their type imports (comparted to just checking for `Option`).
-/// However, the `Option` type path cannot be renamed and the user must make
-/// sure that they use the `::std::option::Option` type and not some other type
-/// with the same name.
+/// See [matches_type_path] for more info.
 ///
-fn is_option_type(ty: &Type) -> bool {
-    let option_path_segments = [
-        PathSegment {
-            ident: Ident::new("std", Span::call_site()),
-            arguments: PathArguments::None,
-        },
-        PathSegment {
-            ident: Ident::new("option", Span::call_site()),
-            arguments: PathArguments::None,
-        },
-        PathSegment {
-            ident: Ident::new("Option", Span::call_site()),
-            arguments: PathArguments::None,
-        },
-    ];
+#[inline]
+fn is_optional(ty: &Type) -> bool {
+    matches_type_path(
+        ty,
+        &[
+            PathSegment {
+                ident: Ident::new("std", Span::call_site()),
+                arguments: PathArguments::None,
+            },
+            PathSegment {
+                ident: Ident::new("option", Span::call_site()),
+                arguments: PathArguments::None,
+            },
+            PathSegment {
+                ident: Ident::new("Option", Span::call_site()),
+                arguments: PathArguments::None,
+            },
+        ],
+    )
+}
 
-    let ty_path_segments = match ty {
+/// Determine wether a type is a `::std::primitive::bool`.
+///
+/// See [matches_type_path] for more info.
+///
+#[inline]
+fn is_boolean(ty: &Type) -> bool {
+    matches_type_path(
+        ty,
+        &[
+            PathSegment {
+                ident: Ident::new("std", Span::call_site()),
+                arguments: PathArguments::None,
+            },
+            PathSegment {
+                ident: Ident::new("primitive", Span::call_site()),
+                arguments: PathArguments::None,
+            },
+            PathSegment {
+                ident: Ident::new("bool", Span::call_site()),
+                arguments: PathArguments::None,
+            },
+        ],
+    )
+}
+
+/// Check wether a type matches the `expected` path segments.
+///
+/// From back to front, the given type needs to completely match at least part
+/// of the `expected` path segments. This gives users some flexibility with
+/// regard to their type imports (compared to just checking for `bool`, eg).
+/// However, the type path cannot be renamed and the user must make sure that
+/// they use the default path and not some other path with the same name. There
+/// is only so much we can do when inspecting types in a macro.
+///
+#[inline]
+fn matches_type_path(ty: &Type, expected: &[PathSegment]) -> bool {
+    let ty_segments = match ty {
         Type::Path(TypePath { path, .. }) => &path.segments,
         _ => return false,
     };
 
-    ty_path_segments
+    ty_segments
         .iter()
         .rev()
-        .zip(option_path_segments.iter().rev())
-        .all(|(ty_path_segment, option_path_segment)| {
-            ty_path_segment.ident == option_path_segment.ident
-        })
+        .zip(expected.iter().rev())
+        .all(|(expected_seg, ty_seg)| expected_seg.ident == ty_seg.ident)
 }
 
 #[cfg(test)]

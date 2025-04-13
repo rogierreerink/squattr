@@ -305,12 +305,7 @@ where
     T: ParseValue,
 {
     fn insert_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>) {
-        if self.is_some() {
-            errors.push(Error::new(
-                value.span(),
-                format!("duplicate entry for `{}`", id),
-            ));
-        } else {
+        if !self.is_some() {
             match value.parse() {
                 Ok(value) => {
                     self.replace(value);
@@ -319,6 +314,11 @@ where
                     errors.push(error);
                 }
             }
+        } else {
+            errors.push(Error::new(
+                value.span(),
+                format!("duplicate entry for `{}`", id),
+            ));
         }
     }
 

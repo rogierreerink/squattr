@@ -41,6 +41,9 @@ mod tests {
             tst_f32_list: Vec<f32>,
 
             tst_bool: bool,
+            tst_bool_omitted: bool,
+            tst_bool_expr: bool,
+
             tst_str: String,
             tst_str_list: Vec<String>,
 
@@ -120,6 +123,9 @@ mod tests {
             tst_f32_list(#f32_min, #f32_max),
 
             tst_bool,
+            // tst_bool_omitted,
+            tst_bool_expr = false,
+
             tst_str = "foo",
             tst_str_list("foo", "bar"),
 
@@ -165,6 +171,9 @@ mod tests {
                 tst_f32_list: vec![f32::MIN, f32::MAX],
 
                 tst_bool: true,
+                tst_bool_omitted: false,
+                tst_bool_expr: false,
+
                 tst_str: "foo".into(),
                 tst_str_list: vec!["foo".into(), "bar".into()],
 
