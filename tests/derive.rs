@@ -9,7 +9,7 @@ mod tests {
     #[test]
     fn parse_attributes_derived() {
         #[derive(Squattr, PartialEq, Debug)]
-        pub struct TestAttribute {
+        struct TestAttribute {
             tst_usize: usize,
             tst_u128: u128,
             tst_u64: u64,
@@ -59,7 +59,7 @@ mod tests {
         }
 
         #[derive(Squattr, Default, PartialEq, Debug)]
-        pub struct SubAttribute {
+        struct SubAttribute {
             tst_sub_str: Option<String>,
         }
 

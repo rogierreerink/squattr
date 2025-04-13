@@ -53,14 +53,14 @@ mod tests {
     #[test]
     fn parse_attributes() {
         #[derive(PartialEq, Debug)]
-        pub struct SomeAttribute {
-            pub some_list: Vec<String>,
-            pub some_ident_list: Vec<Ident>,
-            pub some_bool: bool,
-            pub some_expr: Option<String>,
-            pub some_ident: Option<Ident>,
-            pub some_lit: Option<Lit>,
-            pub some_sub_attr: Option<SubAttribute>,
+        struct SomeAttribute {
+            some_list: Vec<String>,
+            some_ident_list: Vec<Ident>,
+            some_bool: bool,
+            some_expr: Option<String>,
+            some_ident: Option<Ident>,
+            some_lit: Option<Lit>,
+            some_sub_attr: Option<SubAttribute>,
         }
 
         impl Attribute for SomeAttribute {
@@ -141,8 +141,8 @@ mod tests {
         }
 
         #[derive(PartialEq, Debug)]
-        pub struct SubAttribute {
-            pub some_sub_bool: bool,
+        struct SubAttribute {
+            some_sub_bool: bool,
         }
 
         impl Attribute for SubAttribute {
