@@ -92,7 +92,13 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                 for value in values {
                     let id = match value.identifier() {
                         ::std::option::Option::Some(id) => id,
-                        ::std::option::Option::None => continue,
+                        ::std::option::Option::None => {
+                            errors.push(::syn::Error::new(
+                                value.span(),
+                                format!("expected an identifier"),
+                            ));
+                            continue;
+                        },
                     };
 
                     match id.as_str() {
@@ -225,7 +231,13 @@ mod tests {
                     for value in values {
                         let id = match value.identifier() {
                             ::std::option::Option::Some(id) => id,
-                            ::std::option::Option::None => continue,
+                            ::std::option::Option::None => {
+                                errors.push(::syn::Error::new(
+                                    value.span(),
+                                    format!("expected an identifier"),
+                                ));
+                                continue;
+                            },
                         };
                         match id.as_str() {
                             id_str if id_str == "bar" => {
@@ -238,13 +250,10 @@ mod tests {
                                 ban.insert_value(id_str, value, &mut errors);
                             }
                             id_str => {
-                                errors
-                                    .push(
-                                        ::syn::Error::new(
-                                            value.span(),
-                                            format!("unrecognized entry `{}`", id_str),
-                                        ),
-                                    );
+                                errors.push(::syn::Error::new(
+                                    value.span(),
+                                    format!("unrecognized entry `{}`", id_str),
+                                ));
                             }
                         }
                     }

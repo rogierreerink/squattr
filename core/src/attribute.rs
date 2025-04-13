@@ -48,7 +48,7 @@ mod tests {
 
     use proc_macro2::Span;
     use quote::quote;
-    use syn::{Error, Ident, Lit, LitInt, Result};
+    use syn::{Ident, Lit, LitInt};
 
     #[test]
     fn parse_attributes() {
@@ -78,7 +78,13 @@ mod tests {
                 for value in values {
                     let id = match value.identifier() {
                         Some(id) => id,
-                        None => continue,
+                        None => {
+                            errors.push(syn::Error::new(
+                                value.span(),
+                                format!("expected an identifier"),
+                            ));
+                            continue;
+                        }
                     };
                     match id.as_str() {
                         id_str if id_str == "some_list" => {
@@ -146,7 +152,7 @@ mod tests {
         }
 
         impl Attribute for SubAttribute {
-            fn parse(values: Values, span: Span) -> Result<Self> {
+            fn parse(values: Values, span: Span) -> syn::Result<Self> {
                 let mut errors = Vec::new();
 
                 let mut some_sub_bool: Option<bool> = None;
@@ -161,7 +167,7 @@ mod tests {
                             some_sub_bool.insert_value(id_str, value, &mut errors);
                         }
                         id_str => {
-                            errors.push(Error::new(
+                            errors.push(syn::Error::new(
                                 value.span(),
                                 format!("unrecognized entry `{}`", id_str),
                             ));
@@ -170,7 +176,7 @@ mod tests {
                 }
 
                 if some_sub_bool.is_none() {
-                    errors.push(Error::new(span, "expected key `some_expr` not found"));
+                    errors.push(syn::Error::new(span, "expected key `some_expr` not found"));
                 };
 
                 if let Some(error) = errors.combine_errors() {
