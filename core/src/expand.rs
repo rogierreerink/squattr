@@ -207,6 +207,7 @@ mod tests {
             struct FooAttribute {
                 bar: String,
                 baz: Option<bool>,
+                ban: bool,
             }
         };
 
@@ -218,6 +219,7 @@ mod tests {
 
                     let mut bar: ::std::option::Option<String> = ::std::option::Option::None;
                     let mut baz: Option<bool> = ::std::option::Option::None;
+                    let mut ban: ::std::option::Option<bool> = ::std::option::Option::None;
                     let mut errors = ::std::vec::Vec::new();
 
                     for value in values {
@@ -231,6 +233,9 @@ mod tests {
                             }
                             id_str if id_str == "baz" => {
                                 baz.insert_value(id_str, value, &mut errors);
+                            }
+                            id_str if id_str == "ban" => {
+                                ban.insert_value(id_str, value, &mut errors);
                             }
                             id_str => {
                                 errors
@@ -255,6 +260,7 @@ mod tests {
                     Ok(Self {
                         bar: bar.unwrap_or_default(),
                         baz,
+                        ban: ban.unwrap_or_default(),
                     })
                 }
             }
