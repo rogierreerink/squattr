@@ -17,9 +17,9 @@ pub trait Attribute: Sized {
         syn::parse::Parser::parse2(|input: ParseStream| Self::from_input(input), tokens)
     }
 
-    fn from_meta(meta: Meta) -> Result<Self> {
+    fn from_meta(meta: &Meta) -> Result<Self> {
         match meta {
-            Meta::List(MetaList { tokens, .. }) => Self::from_tokens(tokens),
+            Meta::List(MetaList { tokens, .. }) => Self::from_tokens(tokens.clone()),
             Meta::NameValue(MetaNameValue { .. }) => Err(Error::new(
                 Span::call_site(),
                 "meta name values are not supported",
