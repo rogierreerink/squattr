@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use squattr::{attribute::AttributeExt, derive::Squattr};
+    use squattr::{attribute::Attribute, derive::Squattr};
 
     use proc_macro2::Span;
     use quote::quote;
@@ -144,7 +144,7 @@ mod tests {
         };
 
         pretty_assertions::assert_eq!(
-            input.parse_attribute::<TestAttribute>().unwrap(),
+            TestAttribute::from_tokens(input).unwrap(),
             TestAttribute {
                 tst_usize: usize::MAX,
                 tst_u128: u128::MAX,

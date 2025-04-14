@@ -275,8 +275,8 @@ pub fn format_error(value: &Value, expect: &str) -> Error {
     Error::new(
         value.span(),
         match value.identifier() {
-            Some(id) => format!("expected {} (`{}`)", expect, id),
-            None => format!("{} expected", expect),
+            Some(id) => format!("expected for `{}`: {}", id, expect),
+            None => format!("expected: {}", expect),
         },
     )
 }

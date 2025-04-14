@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use syn::{Result, parse::ParseStream};
+use syn::{Error, Meta, MetaList, MetaNameValue, Path, Result, parse::ParseStream};
 
 use crate::{
     ast::{List, Value, Values},
@@ -7,7 +7,29 @@ use crate::{
 };
 
 pub trait Attribute: Sized {
-    fn parse(values: Values, span: Span) -> Result<Self>;
+    fn from_values(values: Values) -> Result<Self>;
+
+    fn from_input(input: ParseStream) -> Result<Self> {
+        Self::from_values(input.parse()?)
+    }
+
+    fn from_tokens(tokens: TokenStream) -> Result<Self> {
+        syn::parse::Parser::parse2(|input: ParseStream| Self::from_input(input), tokens)
+    }
+
+    fn from_meta(meta: Meta) -> Result<Self> {
+        match meta {
+            Meta::List(MetaList { tokens, .. }) => Self::from_tokens(tokens),
+            Meta::NameValue(MetaNameValue { .. }) => Err(Error::new(
+                Span::call_site(),
+                "meta name values are not supported",
+            )),
+            Meta::Path(Path { .. }) => Err(Error::new(
+                Span::call_site(),
+                "meta paths are not supported",
+            )),
+        }
+    }
 }
 
 impl<T> ParseValue for T
@@ -15,36 +37,16 @@ where
     T: Attribute,
 {
     fn parse(value: Value) -> Result<Self> {
-        let span = value.span();
-        let values = match value {
+        T::from_values(match value {
             Value::List(List { values, .. }) => values,
             value => return Err(format_error(&value, "list of values")),
-        };
-        T::parse(values, span)
-    }
-}
-
-pub trait AttributeExt: Sized {
-    fn parse_attribute<T: Attribute>(self) -> Result<T>;
-}
-
-impl AttributeExt for TokenStream {
-    fn parse_attribute<T: Attribute>(self) -> Result<T> {
-        syn::parse::Parser::parse2(
-            |input: ParseStream| T::parse(input.parse()?, input.span()),
-            self,
-        )
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        ast::Values,
-        attribute::{Attribute, AttributeExt},
-        errors::ErrorsExt,
-        types::ValueStorageExt,
-    };
+    use crate::{ast::Values, attribute::Attribute, errors::ErrorsExt, types::ValueStorageExt};
 
     use proc_macro2::Span;
     use quote::quote;
@@ -64,7 +66,8 @@ mod tests {
         }
 
         impl Attribute for SomeAttribute {
-            fn parse(values: Values, span: Span) -> syn::Result<Self> {
+            fn from_values(values: Values) -> syn::Result<Self> {
+                let span = values.span();
                 let mut errors = Vec::new();
 
                 let mut some_list: Option<Vec<String>> = None;
@@ -152,7 +155,8 @@ mod tests {
         }
 
         impl Attribute for SubAttribute {
-            fn parse(values: Values, span: Span) -> syn::Result<Self> {
+            fn from_values(values: Values) -> syn::Result<Self> {
+                let span = values.span();
                 let mut errors = Vec::new();
 
                 let mut some_sub_bool: Option<bool> = None;
@@ -202,7 +206,7 @@ mod tests {
         };
 
         assert_eq!(
-            input.parse_attribute::<SomeAttribute>().unwrap(),
+            SomeAttribute::from_tokens(input).unwrap(),
             SomeAttribute {
                 some_list: vec!["lit1".into(), "lit2".into()],
                 some_ident_list: vec![

@@ -17,34 +17,6 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn expr(&self) -> Option<&Expr> {
-        match self {
-            Value::Expr(expr) => Some(&expr),
-            _ => None,
-        }
-    }
-
-    pub fn ident(&self) -> Option<&Ident> {
-        match self {
-            Value::Ident(ident) => Some(&ident),
-            _ => None,
-        }
-    }
-
-    pub fn list(&self) -> Option<&List> {
-        match self {
-            Value::List(list) => Some(&list),
-            _ => None,
-        }
-    }
-
-    pub fn lit(&self) -> Option<&Lit> {
-        match self {
-            Value::Lit(lit) => Some(&lit),
-            _ => None,
-        }
-    }
-
     pub fn identifier(&self) -> Option<String> {
         match self {
             Value::Expr(expr) => Some(expr.identifier()),
@@ -81,15 +53,27 @@ impl Parse for Value {
 }
 
 #[cfg_attr(feature = "debug", derive(Debug))]
-pub struct Values(Punctuated<Value, Token![,]>);
+pub struct Values {
+    span: Span,
+    values: Punctuated<Value, Token![,]>,
+}
+
+impl Values {
+    pub fn span(&self) -> Span {
+        self.span
+    }
+}
 
 impl From<Value> for Values {
     fn from(value: Value) -> Self {
-        Values({
-            let mut values = Punctuated::new();
-            values.push(value);
-            values
-        })
+        Values {
+            span: value.span(),
+            values: {
+                let mut values = Punctuated::new();
+                values.push(value);
+                values
+            },
+        }
     }
 }
 
@@ -97,7 +81,7 @@ impl Index<usize> for Values {
     type Output = Value;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
+        &self.values[index]
     }
 }
 
@@ -106,13 +90,16 @@ impl IntoIterator for Values {
     type IntoIter = punctuated::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.values.into_iter()
     }
 }
 
 impl Parse for Values {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Values(input.parse_terminated(Value::parse, Token![,])?))
+        Ok(Values {
+            span: input.span(),
+            values: input.parse_terminated(Value::parse, Token![,])?,
+        })
     }
 }
 

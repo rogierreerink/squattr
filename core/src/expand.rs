@@ -82,11 +82,12 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
     Ok(quote! {
         #[automatically_derived]
         impl ::squattr::attribute::Attribute for #ident {
-            fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
+            fn from_values(values: ::squattr::ast::Values) -> ::syn::Result<Self> {
                 use ::squattr::{errors::ErrorsExt, types::ValueStorageExt};
 
                 #variables
 
+                let span = values.span();
                 let mut errors = ::std::vec::Vec::new();
 
                 for value in values {
@@ -220,12 +221,14 @@ mod tests {
         let expect = quote! {
             #[automatically_derived]
             impl ::squattr::attribute::Attribute for FooAttribute {
-                fn parse(values: ::squattr::ast::Values, span: ::proc_macro2::Span) -> ::syn::Result<Self> {
+                fn from_values(values: ::squattr::ast::Values) -> ::syn::Result<Self> {
                     use ::squattr::{errors::ErrorsExt, types::ValueStorageExt};
 
                     let mut bar: ::std::option::Option<String> = ::std::option::Option::None;
                     let mut baz: Option<bool> = ::std::option::Option::None;
                     let mut ban: ::std::option::Option<bool> = ::std::option::Option::None;
+
+                    let span = values.span();
                     let mut errors = ::std::vec::Vec::new();
 
                     for value in values {
