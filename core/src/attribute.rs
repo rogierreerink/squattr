@@ -114,7 +114,7 @@ mod tests {
                         id_str => {
                             errors.push(syn::Error::new(
                                 value.span(),
-                                format!("unrecognized entry `{}`", id_str),
+                                format!("unrecognized key `{}`", id_str),
                             ));
                         }
                     }
@@ -173,7 +173,7 @@ mod tests {
                         id_str => {
                             errors.push(syn::Error::new(
                                 value.span(),
-                                format!("unrecognized entry `{}`", id_str),
+                                format!("unrecognized key `{}`", id_str),
                             ));
                         }
                     }

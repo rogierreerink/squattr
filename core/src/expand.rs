@@ -65,7 +65,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
             });
 
             if !is_boolean(ty) {
-                let error_msg = format!("expected key `{}` not found", ident);
+                let error_msg = format!("required key `{}` not found", ident);
                 required_checks.extend(quote! {
                     if #ident.is_none() {
                         errors.push(::syn::Error::new(span, #error_msg));
@@ -108,7 +108,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                         id_str => {
                             errors.push(::syn::Error::new(
                                 value.span(),
-                                ::std::format!("unrecognized entry `{}`", id_str),
+                                ::std::format!("unrecognized key `{}`", id_str),
                             ));
                         }
                     }
@@ -255,14 +255,14 @@ mod tests {
                             id_str => {
                                 errors.push(::syn::Error::new(
                                     value.span(),
-                                    ::std::format!("unrecognized entry `{}`", id_str),
+                                    ::std::format!("unrecognized key `{}`", id_str),
                                 ));
                             }
                         }
                     }
 
                     if bar.is_none() {
-                        errors.push(::syn::Error::new(span, "expected key `bar` not found"));
+                        errors.push(::syn::Error::new(span, "required key `bar` not found"));
                     }
 
                     if let ::std::option::Option::Some(error) = errors.combine_errors() {

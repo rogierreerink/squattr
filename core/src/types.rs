@@ -275,8 +275,8 @@ pub fn format_error(value: &Value, expect: &str) -> Error {
     Error::new(
         value.span(),
         match value.identifier() {
-            Some(id) => format!("expected for `{}`: {}", id, expect),
-            None => format!("expected: {}", expect),
+            Some(id) => format!("expected {} for `{}`", expect, id),
+            None => format!("expected {}", expect),
         },
     )
 }
@@ -315,17 +315,14 @@ where
                 }
             }
         } else {
-            errors.push(Error::new(
-                value.span(),
-                format!("duplicate entry for `{}`", id),
-            ));
+            errors.push(Error::new(value.span(), format!("duplicate key `{}`", id)));
         }
     }
 
     fn append_value(&mut self, id: &str, value: Value, errors: &mut Vec<Error>) {
         errors.push(Error::new(
             value.span(),
-            format!("cannot append multiple entries for `{}`", id),
+            format!("cannot append multiple values for `{}`", id),
         ));
     }
 }
