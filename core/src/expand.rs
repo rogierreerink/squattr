@@ -64,18 +64,22 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                 let mut #ident: ::std::option::Option<#ty> = ::std::option::Option::None;
             });
 
-            if !is_boolean(ty) {
+            if is_boolean(ty) {
+                struct_fields.extend(quote! {
+                    #ident: #ident.unwrap_or_default(),
+                });
+            } else {
                 let error_msg = format!("required key `{}` not found", ident);
                 required_checks.extend(quote! {
                     if #ident.is_none() {
                         errors.push(::syn::Error::new(span, #error_msg));
                     };
                 });
-            }
 
-            struct_fields.extend(quote! {
-                #ident: #ident.unwrap_or_default(),
-            });
+                struct_fields.extend(quote! {
+                    #ident: #ident.expect("values existence has been confirmed"),
+                });
+            }
         }
     }
 
@@ -182,10 +186,9 @@ fn is_boolean(ty: &Type) -> bool {
 ///
 /// From back to front, the given type needs to completely match at least part
 /// of the `expected` path segments. This gives users some flexibility with
-/// regard to their type imports (compared to just checking for `bool`, eg).
+/// regard to their type imports (compared to just checking for `Option`, eg).
 /// However, the type path cannot be renamed and the user must make sure that
-/// they use the default path and not some other path with the same name. There
-/// is only so much we can do when inspecting types in a macro.
+/// they use the default path and not some other path with the same name.
 ///
 #[inline]
 fn matches_type_path(ty: &Type, expected: &[PathSegment]) -> bool {
@@ -270,7 +273,7 @@ mod tests {
                     }
 
                     Ok(Self {
-                        bar: bar.unwrap_or_default(),
+                        bar: bar.expect("values existence has been confirmed"),
                         baz,
                         ban: ban.unwrap_or_default(),
                     })

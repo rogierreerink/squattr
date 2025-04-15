@@ -47,18 +47,17 @@ mod tests {
             tst_str: String,
             tst_str_list: Vec<String>,
 
-            // Make these optional, as they need to implement `Default`:
-            tst_ident: Option<Ident>,
-            tst_lit: Option<Lit>,
-            tst_lit_bool: Option<LitBool>,
-            tst_lit_float: Option<LitFloat>,
-            tst_lit_int: Option<LitInt>,
-            tst_lit_str: Option<LitStr>,
+            tst_ident: Ident,
+            tst_lit: Lit,
+            tst_lit_bool: LitBool,
+            tst_lit_float: LitFloat,
+            tst_lit_int: LitInt,
+            tst_lit_str: LitStr,
 
             tst_sub_attrs: SubAttribute,
         }
 
-        #[derive(Squattr, Default, PartialEq, Debug)]
+        #[derive(Squattr, PartialEq, Debug)]
         struct SubAttribute {
             tst_sub_str: Option<String>,
         }
@@ -183,12 +182,12 @@ mod tests {
                 tst_str: "foo".into(),
                 tst_str_list: vec!["foo".into(), "bar".into()],
 
-                tst_ident: Some(Ident::new("tst_ident", Span::call_site())),
-                tst_lit: Some(Lit::Str(LitStr::new("literal", Span::call_site()))),
-                tst_lit_bool: Some(LitBool::new(true, Span::call_site())),
-                tst_lit_float: Some(LitFloat::new("123.456", Span::call_site())),
-                tst_lit_int: Some(LitInt::new("123", Span::call_site())),
-                tst_lit_str: Some(LitStr::new("literal", Span::call_site())),
+                tst_ident: Ident::new("tst_ident", Span::call_site()),
+                tst_lit: Lit::Str(LitStr::new("literal", Span::call_site())),
+                tst_lit_bool: LitBool::new(true, Span::call_site()),
+                tst_lit_float: LitFloat::new("123.456", Span::call_site()),
+                tst_lit_int: LitInt::new("123", Span::call_site()),
+                tst_lit_str: LitStr::new("literal", Span::call_site()),
 
                 tst_sub_attrs: SubAttribute {
                     tst_sub_str: Some("hola, mundo".into())

@@ -129,17 +129,15 @@ mod tests {
                         "expected key `some_ident_list` not found",
                     ));
                 }
-                if some_bool.is_none() {
-                    errors.push(syn::Error::new(span, "expected key `some_bool` not found"));
-                }
 
                 if let Some(error) = errors.combine_errors() {
                     return Err(error);
                 }
 
                 Ok(Self {
-                    some_list: some_list.unwrap_or_default(),
-                    some_ident_list: some_ident_list.unwrap_or_default(),
+                    some_list: some_list.expect("values existance has already been confirmed"),
+                    some_ident_list: some_ident_list
+                        .expect("values existance has already been confirmed"),
                     some_bool: some_bool.unwrap_or_default(),
                     some_expr,
                     some_ident,
@@ -156,7 +154,7 @@ mod tests {
 
         impl Attribute for SubAttribute {
             fn from_values(values: Values) -> syn::Result<Self> {
-                let span = values.span();
+                let _span = values.span();
                 let mut errors = Vec::new();
 
                 let mut some_sub_bool: Option<bool> = None;
@@ -178,10 +176,6 @@ mod tests {
                         }
                     }
                 }
-
-                if some_sub_bool.is_none() {
-                    errors.push(syn::Error::new(span, "expected key `some_expr` not found"));
-                };
 
                 if let Some(error) = errors.combine_errors() {
                     return Err(error);
@@ -206,7 +200,7 @@ mod tests {
         };
 
         assert_eq!(
-            SomeAttribute::from_tokens(input).unwrap(),
+            SomeAttribute::from_tokens(input).expect("values existance has already been confirmed"),
             SomeAttribute {
                 some_list: vec!["lit1".into(), "lit2".into()],
                 some_ident_list: vec![
