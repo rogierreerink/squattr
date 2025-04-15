@@ -120,7 +120,7 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
 
                 #required_checks
 
-                if let ::std::option::Option::Some(error) = errors.combine_errors() {
+                if let ::std::option::Option::Some(error) = errors.combine() {
                     return Err(error);
                 }
 
@@ -268,7 +268,7 @@ mod tests {
                         errors.push(::syn::Error::new(span, "required key `bar` not found"));
                     }
 
-                    if let ::std::option::Option::Some(error) = errors.combine_errors() {
+                    if let ::std::option::Option::Some(error) = errors.combine() {
                         return Err(error);
                     }
 

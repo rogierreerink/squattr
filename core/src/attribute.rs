@@ -130,7 +130,7 @@ mod tests {
                     ));
                 }
 
-                if let Some(error) = errors.combine_errors() {
+                if let Some(error) = errors.combine() {
                     return Err(error);
                 }
 
@@ -177,7 +177,7 @@ mod tests {
                     }
                 }
 
-                if let Some(error) = errors.combine_errors() {
+                if let Some(error) = errors.combine() {
                     return Err(error);
                 }
 

@@ -35,7 +35,7 @@ macro_rules! impl_integers {
                             }
                         }
 
-                        if let Some(error) = errors.combine_errors() {
+                        if let Some(error) = errors.combine() {
                             return Err(error);
                         }
 
@@ -84,7 +84,7 @@ macro_rules! impl_floats {
                             }
                         }
 
-                        if let Some(error) = errors.combine_errors() {
+                        if let Some(error) = errors.combine() {
                             return Err(error);
                         }
 
@@ -138,7 +138,7 @@ impl ParseValue for Vec<String> {
                     }
                 }
 
-                if let Some(error) = errors.combine_errors() {
+                if let Some(error) = errors.combine() {
                     return Err(error);
                 }
 
@@ -172,7 +172,7 @@ impl ParseValue for Vec<Ident> {
                     }
                 }
 
-                if let Some(error) = errors.combine_errors() {
+                if let Some(error) = errors.combine() {
                     return Err(error);
                 }
 
@@ -209,7 +209,7 @@ impl ParseValue for Vec<Lit> {
                     }
                 }
 
-                if let Some(error) = errors.combine_errors() {
+                if let Some(error) = errors.combine() {
                     return Err(error);
                 }
 
@@ -248,7 +248,7 @@ macro_rules! impl_lit_variants {
                             }
                         }
 
-                        if let Some(error) = errors.combine_errors() {
+                        if let Some(error) = errors.combine() {
                             return Err(error);
                         }
 
