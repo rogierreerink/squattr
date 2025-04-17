@@ -38,11 +38,16 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
     let mut match_arms = TokenStream::new();
     let mut required_checks = TokenStream::new();
     let mut struct_fields = TokenStream::new();
+    let mut field_strs = TokenStream::new();
 
     for field in fields {
         let ident = field.ident.as_ref().unwrap();
         let ident_str = ident.to_string();
         let ty = &field.ty;
+
+        field_strs.extend(quote! {
+            #ident_str,
+        });
 
         match_arms.extend(quote_spanned! {
             ty.span()=>
@@ -110,9 +115,17 @@ fn expand_named_struct(ident: Ident, fields: punctuated::Iter<Field>) -> Result<
                         #match_arms
 
                         id_str => {
+                            let dym = match ::squattr::dym::did_you_mean(
+                                &[#field_strs],
+                                id_str,
+                            ) {
+                                Some(best_match) => format!(", did you mean `{}`?", best_match),
+                                None => "".into()
+                            };
+
                             errors.push(::syn::Error::new(
                                 value.span(),
-                                ::std::format!("unrecognized key `{}`", id_str),
+                                ::std::format!("unrecognized key `{}`{}", id_str, dym),
                             ));
                         }
                     }
@@ -256,10 +269,21 @@ mod tests {
                                 ban.insert_value(id_str, value, &mut errors);
                             }
                             id_str => {
-                                errors.push(::syn::Error::new(
-                                    value.span(),
-                                    ::std::format!("unrecognized key `{}`", id_str),
-                                ));
+                                let dym = match ::squattr::dym::did_you_mean(
+                                    &["bar", "baz", "ban"],
+                                    id_str,
+                                ) {
+                                    Some(best_match) => format!(", did you mean `{}`?", best_match),
+                                    None => "".into(),
+                                };
+
+                                errors
+                                    .push(
+                                        ::syn::Error::new(
+                                            value.span(),
+                                        ::std::format!("unrecognized key `{}`{}", id_str, dym),
+                                        ),
+                                    );
                             }
                         }
                     }
