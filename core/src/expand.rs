@@ -1,9 +1,3 @@
-#[cfg(test)]
-use std::time::Instant;
-
-#[cfg(test)]
-use colored::Colorize;
-
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
@@ -12,28 +6,13 @@ use syn::{
 };
 
 pub fn expand(input: TokenStream) -> Result<TokenStream> {
-    #[cfg(test)]
-    let time_start = Instant::now();
-
     let input = parse2::<DeriveInput>(input)?;
     let ident = input.ident;
-    let expanded = match input.data {
+    match input.data {
         Data::Struct(DataStruct { fields, .. }) => expand_struct(ident.clone(), fields),
         Data::Enum(_) => Err(Error::new(Span::call_site(), "enums are not supported")),
         Data::Union(_) => Err(Error::new(Span::call_site(), "unions are not supported")),
-    };
-
-    #[cfg(test)]
-    {
-        let time_end = Instant::now();
-        let duration = time_end - time_start;
-        println!(
-            "{}",
-            format!("{} duration: {}us", module_path!(), duration.as_micros()).yellow(),
-        );
     }
-
-    expanded
 }
 
 fn expand_struct(ident: Ident, fields: Fields) -> Result<TokenStream> {
@@ -240,6 +219,9 @@ fn matches_type_path(ty: &Type, expected: &[PathSegment]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
+    use colored::Colorize;
     use proc_macro2::TokenStream;
     use quote::quote;
 
@@ -326,11 +308,14 @@ mod tests {
             }
         };
 
-        assert_eq_token_streams(&expand(input).unwrap(), &expect);
+        let time_start = Instant::now();
+        let expanded = expand(input).unwrap();
+        let time_end = Instant::now();
+
+        assert_eq_token_streams(&expanded, &expect);
+        assess_expansion_duration(time_start, time_end, 500);
     }
 
-    /// Pretty compare token streams for equality.
-    ///
     pub fn assert_eq_token_streams(a: &TokenStream, b: &TokenStream) {
         let a_str = a.to_string();
         let a_parsed = syn::parse_file(&a_str).unwrap();
@@ -341,5 +326,15 @@ mod tests {
         let b_pretty = prettyplease::unparse(&b_parsed);
 
         pretty_assertions::assert_eq!(a_pretty, b_pretty);
+    }
+
+    fn assess_expansion_duration(start: Instant, end: Instant, lt_us: u128) {
+        let duration = (end - start).as_micros();
+        let duration_str = format!("expansion duration: {}us", duration);
+        if duration >= lt_us {
+            println!("{}", duration_str.red(),);
+        } else {
+            println!("{}", duration_str.yellow(),);
+        }
     }
 }
