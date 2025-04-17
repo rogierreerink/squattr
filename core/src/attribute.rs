@@ -3,6 +3,7 @@ use syn::{Error, Meta, MetaList, MetaNameValue, Path, Result, parse::ParseStream
 
 use crate::{
     ast::{List, Value, Values},
+    errors::ErrorsExt,
     types::{ParseValue, format_error},
 };
 
@@ -29,6 +30,38 @@ pub trait Attribute: Sized {
                 "meta paths are not supported",
             )),
         }
+    }
+
+    fn extract_from_attributes(
+        attributes: &mut Vec<syn::Attribute>,
+        path: &str,
+    ) -> Result<Vec<Self>> {
+        let mut errors = Vec::new();
+
+        let parsed = attributes
+            .iter()
+            .filter_map(|attr| {
+                if !attr.path().is_ident(path) {
+                    return None;
+                }
+
+                match Self::from_meta(&attr.meta) {
+                    Ok(attr) => Some(attr),
+                    Err(error) => {
+                        errors.push(error);
+                        None
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
+
+        attributes.retain(|attr| !attr.path().is_ident(path));
+
+        if let Some(error) = errors.combine() {
+            return Err(error);
+        }
+
+        Ok(parsed)
     }
 }
 
