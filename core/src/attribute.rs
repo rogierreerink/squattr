@@ -1,5 +1,7 @@
-use proc_macro2::{Span, TokenStream};
-use syn::{Error, Meta, MetaList, MetaNameValue, Path, Result, parse::ParseStream};
+use proc_macro2::TokenStream;
+use syn::{
+    Error, Meta, MetaList, MetaNameValue, Path, Result, parse::ParseStream, spanned::Spanned,
+};
 
 use crate::{
     ast::{List, Value, Values},
@@ -20,15 +22,22 @@ pub trait Attribute: Sized {
 
     fn from_meta(meta: &Meta) -> Result<Self> {
         match meta {
-            Meta::List(MetaList { tokens, .. }) => Self::from_tokens(tokens.clone()),
-            Meta::NameValue(MetaNameValue { .. }) => Err(Error::new(
-                Span::call_site(),
-                "meta name values are not supported",
-            )),
-            Meta::Path(Path { .. }) => Err(Error::new(
-                Span::call_site(),
-                "meta paths are not supported",
-            )),
+            Meta::List(MetaList { path, tokens, .. }) => match Self::from_tokens(tokens.clone()) {
+                Ok(attribute) => Ok(attribute),
+                Err(error) => {
+                    if !tokens.is_empty() {
+                        Err(error)
+                    } else {
+                        Err(Error::new(path.span(), error))
+                    }
+                }
+            },
+            Meta::NameValue(MetaNameValue { path, .. }) => {
+                Err(Error::new(path.span(), "name values are not supported"))
+            }
+            Meta::Path(Path { segments, .. }) => {
+                Err(Error::new(segments.span(), "paths are not supported"))
+            }
         }
     }
 
