@@ -1,3 +1,9 @@
+#[cfg(test)]
+use std::time::Instant;
+
+#[cfg(test)]
+use colored::Colorize;
+
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
@@ -6,13 +12,28 @@ use syn::{
 };
 
 pub fn expand(input: TokenStream) -> Result<TokenStream> {
+    #[cfg(test)]
+    let time_start = Instant::now();
+
     let input = parse2::<DeriveInput>(input)?;
     let ident = input.ident;
-    match input.data {
+    let expanded = match input.data {
         Data::Struct(DataStruct { fields, .. }) => expand_struct(ident.clone(), fields),
         Data::Enum(_) => Err(Error::new(Span::call_site(), "enums are not supported")),
         Data::Union(_) => Err(Error::new(Span::call_site(), "unions are not supported")),
+    };
+
+    #[cfg(test)]
+    {
+        let time_end = Instant::now();
+        let duration = time_end - time_start;
+        println!(
+            "{}",
+            format!("{} duration: {}us", module_path!(), duration.as_micros()).yellow(),
+        );
     }
+
+    expanded
 }
 
 fn expand_struct(ident: Ident, fields: Fields) -> Result<TokenStream> {
